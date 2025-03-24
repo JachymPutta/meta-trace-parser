@@ -54,6 +54,7 @@ fn parse_args(allocator: Allocator) !Args {
         std.debug.print("Failed to allocate arguments\n", .{});
         return err;
     };
+    defer std.process.argsFree(allocator, args);
 
     var meta_trace_path: []const u8 = undefined;
     var num_out_files: u32 = 1;
@@ -73,7 +74,7 @@ fn parse_args(allocator: Allocator) !Args {
                 std.debug.print("Missing argument for -t\n", .{});
                 return ArgParseError.MissingArgument;
             }
-            meta_trace_path = args[i];
+            meta_trace_path = try allocator.dupe(u8, args[i]);
         } else if (std.mem.eql(u8, arg, "-n") or std.mem.eql(u8, arg, "--num-words")) {
             i += 1;
             if (i >= args.len) {
@@ -129,8 +130,11 @@ fn parse_args(allocator: Allocator) !Args {
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+    defer _ = gpa.deinit();
+
     const allocator = gpa.allocator();
     const args = try parse_args(allocator);
+    defer allocator.free(args.trace);
 
     std.debug.print("Trace: {}\n", .{args});
 }
