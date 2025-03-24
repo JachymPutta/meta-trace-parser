@@ -15,10 +15,24 @@ const ArgParseError = error{
 
 const Args = struct {
     trace: []const u8,
-    num_out_files: u32 = 1,
+    num_out: u32 = 1,
     randomize: bool = false,
     start: u32 = 0,
     end: u32 = 100,
+
+    pub fn format(
+        args: Args,
+        comptime _: []const u8,
+        _: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        try writer.writeAll("Args{\n");
+        _ = try writer.print("\ttrace: {s},\n", .{args.trace});
+        _ = try writer.print("\tnum_out_files: {},\n", .{args.num_out});
+        _ = try writer.print("\trandomize: {},\n", .{args.randomize});
+        _ = try writer.print("\trange: {}%-{}%,\n", .{ args.start, args.end });
+        try writer.writeAll("}\n");
+    }
 };
 
 const HELP_TEXT =
@@ -48,7 +62,7 @@ fn parse_args(allocator: Allocator) !Args {
     var end: u32 = 100;
 
     var i: u32 = 1;
-    while (i < args.len) : (i += 1) {
+    while (i < args.len) {
         const arg = args[i];
         if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
             std.debug.print(HELP_TEXT, .{});
@@ -59,7 +73,7 @@ fn parse_args(allocator: Allocator) !Args {
                 std.debug.print("Missing argument for -t\n", .{});
                 return ArgParseError.MissingArgument;
             }
-            meta_trace_path = arg;
+            meta_trace_path = args[i];
         } else if (std.mem.eql(u8, arg, "-n") or std.mem.eql(u8, arg, "--num-words")) {
             i += 1;
             if (i >= args.len) {
@@ -106,10 +120,10 @@ fn parse_args(allocator: Allocator) !Args {
 
     return Args{
         .trace = meta_trace_path,
-        .num_out_files = num_out_files,
+        .num_out = num_out_files,
         .randomize = randomize,
-        .start = 0,
-        .end = 100,
+        .start = start,
+        .end = end,
     };
 }
 
@@ -118,7 +132,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     const args = try parse_args(allocator);
 
-    _ = args;
+    std.debug.print("Trace: {}\n", .{args});
 }
 
 test "simple test" {
